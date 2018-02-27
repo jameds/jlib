@@ -37,9 +37,9 @@ shared : $(SO)
 static : $(A)
 
 install: $(SO)
-	install -m644 -d $(INCLUDE_INSTALL)
+	install -m655 -d $(INCLUDE_INSTALL)
 	install -m644 -t $(INCLUDE_INSTALL) $(INCLUDES)
-	install -m644 -t $(SO_INSTALL) $(SO) $(SO_PAT) $(SO_REV) $(SO_INT) $(A)
+	install -m655 -t $(SO_INSTALL) $(SO) $(SO_PAT) $(SO_REV) $(SO_INT) $(A)
 
 uninstall:
 	rm -rf $(INCLUDE_INSTALL)
