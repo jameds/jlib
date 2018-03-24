@@ -28,29 +28,35 @@ else
 SO_INSTALL ?= $(PREFIX)/lib
 endif
 
+ifndef STATIC
+INSTALL = $(SO_PAT)
+else
+INSTALL = $(A)
+endif
+
 INCLUDE_INSTALL ?= $(PREFIX)/include/j
 
 .PHONY: shared static install uninstall test clean remake
 
-shared : $(SO)
+$(INSTALL) :
 
-static : $(A)
-
-install: $(SO)
+install : $(INSTALL)
 	install -m655 -d $(INCLUDE_INSTALL)
 	install -m644 -t $(INCLUDE_INSTALL) $(INCLUDES)
-	install -m655 -t $(SO_INSTALL) $(SO) $(SO_PAT) $(SO_REV) $(SO_INT) $(A)
+	install -m655 -t $(SO_INSTALL) $(INSTALL)
+ifndef STATIC
+	ln -sf $(SO_PAT) $(SO_INSTALL)/$(SO_REV)
+	ln -sf $(SO_PAT) $(SO_INSTALL)/$(SO_INT)
+	ln -sf $(SO_PAT) $(SO_INSTALL)/$(SO)
+endif
 
-uninstall:
+uninstall :
 	rm -rf $(INCLUDE_INSTALL)
 	rm -f $(SO_INSTALL)/$(SO) $(SO_INSTALL)/$(SO_PAT) \
 		$(SO_INSTALL)/$(SO_REV) $(SO_INSTALL)/$(SO_INT) $(SO_INSTALL)/$(A)
 
-$(SO) : $(OBJECTS)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $(SO_PAT) $^
-	ln -sf $(SO_PAT) $(SO_REV)
-	ln -sf $(SO_PAT) $(SO_INT)
-	ln -sf $(SO_PAT) $(SO)
+$(SO_PAT) : $(OBJECTS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
 
 $(A) : $(OBJECTS)
 	ar rc $@ $^
@@ -59,14 +65,14 @@ $(A) : $(OBJECTS)
 obj/%.o : src/%.c $(INCLUDES)
 	$(CC) $(CFLAGS) -fpic -c -o $@ $<
 
-test : $(SO) $(A)
+test : $(SO_PAT) $(A)
 	$(CC) $(CFLAGS) src/main.c -L. -Wl,-rpath=. -l:$(SO_PAT) -o $(BIN)
 	$(CC) $(CFLAGS) src/main.c -L. -l:$(A) -o $(ABIN)
 
 clean :
 	rm -f $(OBJECTS)
-	rm -f $(SO) $(SO_PAT) $(SO_REV) $(SO_INT) $(A) $(BIN) $(ABIN)
+	rm -f $(SO_PAT) $(A) $(BIN) $(ABIN)
 
 remake :
 	$(MAKE) clean
-	$(MAKE) shared
+	$(MAKE) $(INSTALL)
