@@ -1,6 +1,6 @@
 /*
 	Copyright 2018 by James R.
-	This file is part of jlib.
+	This file is a part of jlib.
 
 	jlib is free software; you can redistribute it and/or modify
 	it under the terms of the GNU Lesser General Public License as published by

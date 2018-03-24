@@ -1,6 +1,6 @@
 /*
 	Copyright 2018 by James R.
-	This file is part of jlib.
+	This file is a part of jlib.
 
 	jlib is free software; you can redistribute it and/or modify
 	it under the terms of the GNU Lesser General Public License as published by
@@ -39,4 +39,4 @@ ex:
 	return n;
 }
 
-/* vim: set ts=8 sw=8 ft=c :*/
+/* vim: set ts=3 sw=3 ft=c :*/

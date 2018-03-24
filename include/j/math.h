@@ -1,7 +1,7 @@
 /*
 	Copyright 2018 by James R.
 
-	This file is part of jlib.
+	This file is a part of jlib.
 	And jlib, in the following text, shall be refered to as "this library".
 
 	This library is free software: you can redistribute it and/or modify
