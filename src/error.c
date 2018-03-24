@@ -1,5 +1,6 @@
 /*
 	Copyright 2018 by James R.
+
 	This file is a part of jlib.
 
 	jlib is free software; you can redistribute it and/or modify
