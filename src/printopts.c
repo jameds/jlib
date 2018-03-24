@@ -107,7 +107,7 @@ int printopts (FILE *stream, const struct option options[], int n)
 		else
 			indentlong = 0;
 
-		putc('\n', stderr);
+		putc('\n', stream);
 		nbytesw += len + 1;
 #undef EW
 	}
