@@ -44,4 +44,20 @@ char * strrev    (char *dest, const char *src);
 char * strnrev   (char *dest, const char *src, size_t n);
 char * strrerev  (char *s);
 
+/*
+	Copies of GNU extensions.
+	strchrnul() is no different than strchr(), except that upon failure, it will
+	return a pointer to the end of s, rather than NULL.
+	memrchr() shall search for the last occurrence of c in s, starting at the n-
+	th character.
+*/
+char * strchrnul (const char *s, int c);
+void * memrchr   (const void *s, int c, size_t n);
+
+/*
+	Identical to memrchr(), except that upon failure, s is returned, rather than
+	NULL.
+ */
+void * memrchrnul (const void *s, int c, size_t n);
+
 #endif
