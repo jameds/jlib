@@ -62,7 +62,7 @@ int getopte (int *argc, char *argv[], const struct option options[], int n)
 		while (++ai < ac)
 			/* A single dash is treated as a regular argument. */
 			if (*argv[ai] != '-' || *++argv[ai] == 0)
-				argv[(*argc)++] = --argv[ai];
+				argv[(*argc)++] = argv[ai];
 			else
 			{
 				if (*argv[ai] == '-')  /* long option */
@@ -116,7 +116,6 @@ int getopte (int *argc, char *argv[], const struct option options[], int n)
 			}
 
 	if (opti < n)
-	{
 		if (options[opti].argument)
 		{
 			argv[ai] = adp + 1;
@@ -126,11 +125,10 @@ int getopte (int *argc, char *argv[], const struct option options[], int n)
 				optarg = argv[ai];
 
 			pending = 0;  /* break option */
+			return opti;
 		}
-		else
-			if (*adp && *++argv[ai] == 0)  /* end short option string */
-				pending = 0;
-	}
+	if (*adp && *++argv[ai] == 0)  /* end short option string */
+		pending = 0;
 
 	return opti;
 }
