@@ -1,7 +1,7 @@
 CFLAGS  := -Iinclude $(CFLAGS)
 LDFLAGS := -shared $(LDFLAGS)
 
-OBJECTS  = error wread math getopt printopts strrev strwcpy
+OBJECTS  = error wread math getopt strrev strwcpy
 INCLUDES = version error ftr math getopt string
 
 OBJECTS  := $(patsubst %,obj/%.o,$(OBJECTS))
