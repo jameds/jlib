@@ -100,7 +100,7 @@ int findoption (const char *s, int shorto, int aproximate,
 		( (j_getopt_flags & J_GETOPT_CASE_INSENSITIVE) ?
 				&strcmp_insensitive : &strcmp );
 
-	size_t final = strlen(s)-1;
+	size_t final = strlen(s);
 	int c;
 	int spacers = 0;
 	int i;
@@ -120,9 +120,8 @@ int findoption (const char *s, int shorto, int aproximate,
 			if (options[i].long_option)
 			{
 				c = (*compare)(s, options[i].long_option);
-				if (c == 0 || (c < 0 && aproximate &&
-							(strlen(options[i].long_option)-1 > final &&
-								options[i].long_option[final] == s[final])))
+				if (c == 0 || (aproximate && c < 0 &&
+							c == -(options[i].long_option[final])))
 				{
 					return i - spacers;
 				}
