@@ -50,7 +50,7 @@ tion.
 
 If short_option is 0  and long_option is NULL,  that option shall be considered
 a "spacer" option.  A spacer option only makes visual difference (with j_print-
-opts()).   A spacer option  shall be printed as a blank line.   Unless J_PRINT-
+option()). A spacer option  shall be printed as a blank line.   Unless J_PRINT-
 OPTS_ALIGN_ACROSS is in effect,  the segments of options between spacer options
 shall be indented separately.
 
@@ -69,13 +69,44 @@ struct j_option
 extern int j_getopt_flags;
 
 /*
+A string to print before all options, via j_printopts().  It is not printed for
+spacer options.  The string is initialized with two spaces for indenting.
+*/
+extern const char *j_printopts_leftmargin;
+/*
+A string to print before the description, via j_printopts(). The string is ini-
+tialized with a single space.
+*/
+extern const char *j_printopts_halfway;
+
+/*
 A string containing the characters of the current option. For long options, the
 string contains the option just as it was passed via the argument vector.   For
-short options,  the string prints merely the option's character, prepended with
+short options,the string contains merely the option's character, prepended with
 a '-'.
  */
 extern char *optstr;
 extern char *optarg; /* The current option's argument or NULL. */
+
+/*
+A pointer to the function which j_printopts() should call to print each option.
+Such printing may include the left margin, also.The function pointer is initia-
+lized to j_printoption().     The function must return the number of characters
+that were written to the given stream.
+*/
+extern int (*j_printopts_function)(FILE *stream, struct j_option option);
+
+/*
+The length of the longest option in the current segment as defined by j_print-
+option().
+*/
+extern int j_printopts_width;
+/*
+The variety of options present in the options array passed to j_printopts(),and
+the current segment.Valid values are 1, for short options, 2, for long options,
+and 3, for both short and long options.
+*/
+extern int j_printopts_all_varieties, j_printopts_varieties;
 
 /*
 j_getopt()  shall search for and parse options,  denoted  by an initial
@@ -132,18 +163,25 @@ int j_getopt    (int *argcp, char *argv[],
       const struct j_option options[], int number_of_options);
 
 /*
-j_printopts() shall print on consecutive lines,  in order, the usage of
-the options as defined in the array options. Each field of option usage
-shall be aligned uniformly.
+j_printopts() shall print in consecutive order, on separate lines, the
+usage and description of each option defined in the array options.Seg-
+ments is the number of segments (see "struct j_option") which shall be
+printed.   A value of 0 indicates that all segments should be printed.
 
-The format of each option shall be determined according to paragraph 3,
-5 and 6 of the documentation for j_getopt(). Syntax changeable by flags
-is prefered.    Long options are indented if short options are present.
-
-There is an  exception to  indenting of the description.    See "struct
-j_option".
+Each option is printed by calling  the function pointed to by j_print-
+opts_function.
 */
 int j_printopts (FILE *stream,
-      const struct j_option options[], int number_of_options);
+      const struct j_option options[], int number_of_options,
+      int start_segment, int segments);
+
+/*
+The format of the option shall be  determined according to paragraph 3,
+5 and 6 of the documentation for j_getopt(). Syntax changeable by flags
+is prefered.  Long options are indented if short options are present in
+the current segment.   See "struct j_option", "`spacer' options".   The
+description is indented to match the longest option and argument.
+*/
+int j_printoption (FILE *stream, struct j_option option);
 
 #endif

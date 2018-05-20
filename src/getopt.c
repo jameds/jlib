@@ -30,8 +30,37 @@ along with jlib.  If not, see <http://www.gnu.org/licenses/>.
 
 int j_getopt_flags = 0;
 
+const char *j_printopts_leftmargin = "  ";
+const char *j_printopts_halfway    = " ";
+
 char *optstr;
 char *optarg;
+
+int (*j_printopts_function)(FILE *, struct j_option) = &j_printoption;
+
+int j_printopts_all_varieties, j_printopts_varieties;
+int j_printopts_indent;
+
+static int
+max (a, b)
+	int a;
+	int b;
+{
+	return ( (a > b) ? a : b );
+}
+
+static int
+strcmp_insensitive (lhs, rhs)
+	const char *lhs;
+	const char *rhs;
+{
+	for (;; ++lhs, ++rhs)
+	{
+		if (toupper(*lhs) != toupper(*rhs) || *lhs == '\0')
+			break;
+	}
+	return *lhs - *rhs;
+}
 
 static
 int shiftback (int *argcp, char **argv, int n)
@@ -48,16 +77,19 @@ int shiftback (int *argcp, char **argv, int n)
 }
 
 static
-int strcmp_insensitive (lhs, rhs)
-	const char *lhs;
-	const char *rhs;
+int getvarieties (const struct j_option *options, int number_of_options)
 {
-	for (;; ++lhs, ++rhs)
+	int varie = 0;
+	int i;
+	for (i = 0; i < number_of_options; ++i)
 	{
-		if (toupper(*lhs) != toupper(*rhs) || *lhs == '\0')
+		     if (options[i].short_option) varie |= OVA_SHRT;
+		else if  (options[i].long_option) varie |= OVA_LONG;
+
+		if (varie == OVA_BOTH)  /* We've already got what we want to know. */
 			break;
 	}
-	return *lhs - *rhs;
+	return varie;
 }
 
 static
@@ -124,19 +156,50 @@ int findnulloption (const struct j_option *options, int number_of_options)
 }
 
 static
-int getvarieties (const struct j_option *options, int number_of_options)
+int getlongest (const struct j_option *options, int number_of_options)
 {
-	int varie = 0;
-	int i;
+	int shortos = 0;
+	int record = 0;
+	int i, n;
 	for (i = 0; i < number_of_options; ++i)
 	{
-		     if (options[i].short_option) varie |= OVA_SHRT;
-		else if  (options[i].long_option) varie |= OVA_LONG;
+		if (options[i].short_option && shortos < 2)
+			shortos = 2;
 
-		if (varie == OVA_BOTH)  /* We've already got what we want to know. */
-			break;
+		if (options[i].long_option)
+		{
+			if (shortos == 2)
+				shortos = 4;
+			n = 2 + strlen(options[i].long_option) + 1;
+		}
+		else
+		{
+			n = ( (j_getopt_flags & J_GETOPT_ALWAYS_DELIMIT ||
+						!(j_getopt_flags &
+							(J_GETOPT_SINGULAR | J_GETOPT_SHORT_SINGULAR))) ?
+					1 : 0 );
+		}
+
+		n += ( (options[i].argument) ? strlen(options[i].argument) : -1 );
+
+		if (n > record)
+			record = n;
 	}
-	return varie;
+	return record + shortos;
+}
+
+static
+int getlongest_corrected (const struct j_option *options,int number_of_options,
+		int varieties)
+{
+	/* getlongest() assumes that a  long option will always start with two '-'.
+		However,without J_GETOPT_CONSISTENT_HYPHENS, j_printoption() will denote
+		a long option with a single '-'  if no short options exist in the array.
+	 */
+	return ( (!(j_getopt_flags & J_GETOPT_CONSISTENT_HYPHENS) &&
+				varieties == OVA_LONG) ?
+			getlongest(options, number_of_options) - 1 :
+			getlongest(options, number_of_options) );
 }
 
 int j_getopt (int *argcp, char *argv[],
@@ -312,16 +375,6 @@ int j_getopt (int *argcp, char *argv[],
 	return ( (i == -1) ?number_of_options : i );
 }
 
-static int
-max (a, b)
-	int a;
-	int b;
-{
-	return ( (a > b) ? a : b );
-}
-
-const char *j_printopts_leftmargin = "  ";
-
 static
 int printargument (FILE *stream, const char *argument, int shorto)
 {
@@ -343,115 +396,95 @@ int printargument (FILE *stream, const char *argument, int shorto)
 	}
 }
 
-static
-int getlongest (const struct j_option *options, int number_of_options)
+int j_printoption (FILE *stream, struct j_option option)
 {
-	int shortos = 0;
-	int record = 0;
-	int i, n;
-	for (i = 0; i < number_of_options; ++i)
+	int chars_wrote = 0, lm_chars_wrote;
+
+#define PRINTF( ... ) chars_wrote += max(fprintf(stream, __VA_ARGS__), 0)
+
+	if (!option.short_option && option.long_option == NULL)
+		/* The spacer option is printed as simply a blank line. */
+		return ( (putc('\n', stream) >= 0) ? 1 : 0 );
+
+	lm_chars_wrote = max(fprintf(stream, "%s", j_printopts_leftmargin), 0);
+
+	if (j_printopts_varieties == OVA_LONG)
 	{
-		if (options[i].short_option && shortos < 1)
-			shortos = 2;
-
-		if (options[i].long_option)
-		{
-			if (shortos == 2)
-				shortos = 4;
-			n = 2 + strlen(options[i].long_option) + 1;
-		}
-		else
-		{
-			n = ( (j_getopt_flags & J_GETOPT_ALWAYS_DELIMIT ||
-						!(j_getopt_flags &
-							(J_GETOPT_SINGULAR | J_GETOPT_SHORT_SINGULAR))) ?
-					1 : 0 );
-		}
-
-		n += ( (options[i].argument) ? strlen(options[i].argument) : -1 );
-
-		if (n > record)
-			record = n;
+		PRINTF(( (j_getopt_flags & J_GETOPT_CONSISTENT_HYPHENS ||
+						j_printopts_all_varieties == OVA_BOTH) ?
+					"--%s" : "-%s" ),  option.long_option);
 	}
-	return record + shortos;
-}
+	else
+	{
+		if (option.short_option)
+			PRINTF("-%c", option.short_option);
 
-static int
-getlongest_corrected (const struct j_option *options, int number_of_options,
-		int varieties)
-{
-	/* getlongest() assumes that a long option will always start with two '-'.
-		However, without J_GETOPT_CONSISTENT_HYPHENS, j_getopt() accepts a long
-		option denoted with a single '-' if no short options exist in the array.
-	 */
-	return ( (j_getopt_flags & J_GETOPT_CONSISTENT_HYPHENS &&
-				varieties != OVA_LONG) ?
-			getlongest(options, number_of_options) + 1 :
-			getlongest(options, number_of_options) );
+		if (option.long_option)
+		{
+			PRINTF(( (option.short_option) ?
+						", --%s" : "    --%s" ), option.long_option);
+		}
+	}
+
+	if (option.argument)
+	{
+		chars_wrote += printargument(stream,
+				option.argument, option.short_option);
+	}
+
+	if (chars_wrote < j_printopts_indent)
+		PRINTF("%*s", j_printopts_indent - chars_wrote, " ");
+	PRINTF("%s",  j_printopts_halfway);
+
+	PRINTF("%s\n", option.description);
+
+	return chars_wrote + lm_chars_wrote;
 }
 
 int j_printopts (FILE *stream,
-		const struct j_option options[], int number_of_options)
+		const struct j_option options[], int number_of_options,
+		int start_segment, int segments)
 {
-	int bytes_wrote = 0, n;
-
-	int varieties;
-	int width;
-
+	int bytes_wrote = 0;
 	int i, u;
 
-	varieties = getvarieties(options, number_of_options);
-
+	j_printopts_all_varieties = getvarieties(options, number_of_options);
 	if (j_getopt_flags & J_PRINTOPTS_ALIGN_ACROSS)
-		width = getlongest_corrected(options, number_of_options, varieties);
+	{
+		j_printopts_varieties = j_printopts_all_varieties;
+		j_printopts_indent    = getlongest_corrected(options, number_of_options,
+				j_printopts_all_varieties);
+	}
 
-	for (i = 0; i < number_of_options; ++i)
+	for (i = 0; start_segment > 0; --start_segment)
+		i += findnulloption(&options[i], number_of_options - i) + 1;
+
+	for (; i < number_of_options ;)
 	{
 		u = findnulloption(&options[i], number_of_options - i);
 
 		if (!(j_getopt_flags & J_PRINTOPTS_ALIGN_ACROSS))
-			width = getlongest_corrected(&options[i], u, varieties);
-
-		for (u += i; i < u; ++i)
 		{
-			bytes_wrote += max(fprintf(stream, "%s", j_printopts_leftmargin), 0);
-
-			n = 0;
-#define PRINTF( ... ) n += max(fprintf(stream, __VA_ARGS__), 0)
-			if (varieties == OVA_LONG)
-			{
-				PRINTF(( (j_getopt_flags & J_GETOPT_CONSISTENT_HYPHENS) ?
-							"--%s" : "-%s" ),  options[i].long_option);
-			}
-			else
-			{
-				if (options[i].short_option)
-					PRINTF("-%c", options[i].short_option);
-
-				if (options[i].long_option)
-				{
-					PRINTF(( (options[i].short_option) ?
-								", --%s" : "    --%s" ), options[i].long_option);
-				}
-			}
-
-			if (options[i].argument)
-			{
-				n += printargument(stream,
-						options[i].argument, options[i].short_option);
-			}
-
-			PRINTF("%*s", width - n, " ");
-
-			PRINTF("%s\n", options[i].description);
-
-			bytes_wrote += n;
+			j_printopts_varieties = getvarieties(&options[i], u);
+			j_printopts_indent = getlongest_corrected(&options[i], u,
+					j_printopts_all_varieties);
 		}
 
-		if (i != number_of_options)
+		u += i;
+		if (segments == 0 || --segments > 0)
 		{
-			putc('\n', stream);
-			bytes_wrote++;
+			if (u != number_of_options)
+				u++;
+
+			for (; i < u; ++i)
+				bytes_wrote += (*j_printopts_function)(stream, options[i]);
+		}
+		else
+		{
+			for (; i < u; ++i)
+				bytes_wrote += (*j_printopts_function)(stream, options[i]);
+
+			break;
 		}
 	}
 
