@@ -1,4 +1,4 @@
-/*.out
+/test*
 /libj*
-/obj/*
-/src/main.c
+/*.o
+/main.c
