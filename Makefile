@@ -1,78 +1,81 @@
-CFLAGS  := -Iinclude $(CFLAGS)
-LDFLAGS := -shared $(LDFLAGS)
+# vim: ts=3 sw=3
+# The following variables may be changed by the user.
 
-OBJECTS  = error wread math getopt strrev strwcpy
-INCLUDES = version error ftr math getopt string
+CFLAGS:=-I. -std=c99 -Wall -pedantic -Werror -fno-stack-protector \
+	-Wno-discarded-qualifiers -D_POSIX_C_SOURCE=200112L $(CFLAGS)
+LDFLAGS:=-lm $(LDFLAGS)
 
-OBJECTS  := $(patsubst %,obj/%.o,$(OBJECTS))
-INCLUDES := $(patsubst %,include/j/%.h,$(INCLUDES))
+version?=2
+version_revision?=0
+version_patch?=0
 
-BIN    ?= a.out
-ABIN   ?= b.out
+usr?=/usr/local
 
-SO     ?= libj.so
-SO_PAT := $(SO).2.0.0
-SO_REV := $(SO).2.0
-SO_INT := $(SO).2
-
-A      ?= libj.a
-PREFIX ?= /usr/local
-
-ARCH := $(shell getconf LONG_BIT)
-ifdef LIB32
-ifeq ($(ARCH), 64)
-CFLAGS := -m32 $(CFLAGS)
-SO_INSTALL ?= $(PREFIX)/lib32
-endif
+# I think Microsoft Windows/DOS uses PE or something.
+ifdef elf386
+CFLAGS:=-m32 $(CFLAGS)
+LDFLAGS:=-m elf_i386 $(LDFLAGS)
+lib?=lib32
 else
-SO_INSTALL ?= $(PREFIX)/lib
+lib?=lib
 endif
 
-ifndef STATIC
-INSTALL = $(SO_PAT)
+static_bin=libj.a
+shared_bin=libj.so.$(version).$(version_revision).$(version_patch)
+
+# Builds a static version of the library.  The shared version is not built.
+ifndef static
+CFLAGS:=-fPIC $(CFLAGS)
+bin=$(shared_bin)
 else
-INSTALL = $(A)
+bin=$(static_bin)
 endif
 
-INCLUDE_INSTALL ?= $(PREFIX)/include/j
+## END USER VARIABLES
 
-.PHONY: shared static install uninstall test clean remake
+objects = error.o readwh.o \
+			 getopt.o utility.o \
+			 straprox.o memchr.o strrev.o strcasecmp.o
 
-$(INSTALL) :
+.PHONY : clean install uninstall
 
-install : $(INSTALL)
-	install -m655 -d $(INCLUDE_INSTALL)
-	install -m644 -t $(INCLUDE_INSTALL) $(INCLUDES)
-	install -m655 -t $(SO_INSTALL) $(INSTALL)
-ifndef STATIC
-	ln -sf $(SO_PAT) $(SO_INSTALL)/$(SO_REV)
-	ln -sf $(SO_PAT) $(SO_INSTALL)/$(SO_INT)
-	ln -sf $(SO_PAT) $(SO_INSTALL)/$(SO)
+$(bin) :
+
+clean :
+	-rm -f $(objects)
+	-rm -f $(static_bin) $(shared_bin)
+	-rm -f libj.so libj.so.$(version) libj.so.$(version).$(version_revision)
+
+install : $(bin)
+	cp -Rf -t $(usr)/include j
+	chmod -R a+rX $(usr)/include/j
+	mkdir -p -ma+rx $(usr)/$(lib)
+	cp -f -t $(usr)/$(lib) $(bin)
+	chmod a+rx $(usr)/$(lib)/$(bin)
+ifneq ($(static),0)
+	ln -sf $(usr)/$(lib)/$(bin) $(usr)/lib/libj.so
+	ln -sf $(usr)/$(lib)/$(bin) $(usr)/lib/libj.so.$(version)
+	ln -sf $(usr)/$(lib)/$(bin) $(usr)/lib/libj.so.$(version).$(version_revision)
 endif
 
 uninstall :
-	rm -rf $(INCLUDE_INSTALL)
-	rm -f $(SO_INSTALL)/$(SO) $(SO_INSTALL)/$(SO_PAT) \
-		$(SO_INSTALL)/$(SO_REV) $(SO_INSTALL)/$(SO_INT) $(SO_INSTALL)/$(A)
+	-rm -Rf $(usr)/include/j
+	-rm -f $(usr)/$(lib)/$(bin)
+ifneq ($(static),0)
+	-rm -f $(usr)/$(lib)/libj.so
+	-rm -f $(usr)/$(lib)/libj.so.$(version)
+	-rm -f $(usr)/$(lib)/libj.so.$(version).$(version_revision)
+endif
 
-$(SO_PAT) : $(OBJECTS)
-	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $^
+libj.so.$(version).$(version_revision).$(version_patch) : $(objects)
+	$(LD) -shared $(LDFLAGS) -o $@ $(objects)
+	ln -sf $@ libj.so
+	ln -sf $@ libj.so.$(version)
+	ln -sf $@ libj.so.$(version).$(version_revision)
 
-$(A) : $(OBJECTS)
-	ar rc $@ $^
+libj.a : $(objects)
+	$(AR) rc $@ $(objects)
 	ranlib $@
 
-obj/%.o : src/%.c $(INCLUDES)
-	$(CC) $(CFLAGS) -fpic -c -o $@ $<
-
-test : $(SO_PAT) $(A)
-	$(CC) $(CFLAGS) src/main.c -L. -Wl,-rpath=. -l:$(SO_PAT) -o $(BIN)
-	$(CC) $(CFLAGS) src/main.c -L. -l:$(A) -o $(ABIN)
-
-clean :
-	rm -f $(OBJECTS)
-	rm -f $(SO_PAT) $(A) $(BIN) $(ABIN)
-
-remake :
-	$(MAKE) clean
-	$(MAKE) $(INSTALL)
+.c.o :
+	$(CC) -c $(CFLAGS) -o $@ $<
