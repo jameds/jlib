@@ -5,7 +5,7 @@ CFLAGS:=-I. -std=c99 -Wall -pedantic -Werror -fno-stack-protector \
 	-Wno-discarded-qualifiers -D_POSIX_C_SOURCE=200112L $(CFLAGS)
 LDFLAGS:=-lm $(LDFLAGS)
 
-version?=2
+version?=4
 version_revision?=0
 version_patch?=0
 
