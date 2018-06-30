@@ -463,7 +463,6 @@ int j_printopts (FILE *stream,
 					j_printopts_all_varieties);
 		}
 
-#define PRINTI fprintf(stream, "%*d\t", number_of_options / 10 + 1, i)
 		u += i;
 		if (segments == 0 || --segments > 0)
 		{
@@ -471,18 +470,12 @@ int j_printopts (FILE *stream,
 				u++;
 
 			for (; i < u; ++i)
-			{
-				PRINTI;
 				bytes_wrote += (*j_printopts_function)(stream, options[i]);
-			}
 		}
 		else
 		{
 			for (; i < u; ++i)
-			{
-				PRINTI;
 				bytes_wrote += (*j_printopts_function)(stream, options[i]);
-			}
 
 			break;
 		}
