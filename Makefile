@@ -7,7 +7,7 @@ LDFLAGS:=-lm $(LDFLAGS)
 
 version?=4
 version_revision?=0
-version_patch?=0
+version_patch?=1
 
 usr?=/usr/local
 

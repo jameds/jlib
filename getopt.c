@@ -45,17 +45,17 @@ int j_printopts_all_varieties, j_printopts_varieties;
 int j_printopts_indent;
 
 static
-int shiftback (int *argcp, char **argv, int n)
+int shiftback (int argc, char **argv, int n)
 {
 	char **argv_end;
 
-	(*argcp) -= n;
-	argv_end = argv + *argcp;
+	argc -= n;
+	argv_end = argv + argc;
 
 	for (; argv < argv_end; ++argv)
 		*argv = argv[n];
 
-	return *argcp;
+	return n;
 }
 
 static
@@ -256,7 +256,7 @@ int j_getopt (int *argcp, char *argv[],
 					/* A double hyphen is considered to halt the options. */
 					if (*argv[argi] == '\0')
 					{
-						shiftback(argcp, &argv[argi], 1);
+						shiftback(*argcp - argi, &argv[argi], 1);
 						return -1;
 					}
 					else
@@ -301,7 +301,8 @@ int j_getopt (int *argcp, char *argv[],
 						}
 					}
 
-				shiftback(argcp, &argv[argi], ( (nextarg) ? 2 : 1 ));
+				*argcp -=
+					shiftback(*argcp - argi, &argv[argi], ( (nextarg) ? 2 : 1 ) );
 
 				break;
 			}

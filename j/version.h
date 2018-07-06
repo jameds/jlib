@@ -21,6 +21,6 @@ along with jlib.  If not, see <http://www.gnu.org/licenses/>.
 
 #define JLIB 4
 #define JLIB_MINOR 0
-#define JLIB_PATCH 0
+#define JLIB_PATCH 1
 
 #endif
